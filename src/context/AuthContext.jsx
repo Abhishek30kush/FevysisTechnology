@@ -12,7 +12,7 @@ import {
 } from "firebase/auth";
 
 import { db } from "../services/firebase";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -27,7 +27,8 @@ export function AuthProvider({ children }) {
 
   async function signUp(email, password, forcedRole) {
     const res = await createUserWithEmailAndPassword(auth, email, password);
-    const role = forcedRole || (email.toLowerCase().includes("admin") ? "admin" : "client");
+    // If the email has "admin", it MUST be "admin" role (override forcedRole)
+    const role = email.toLowerCase().includes("admin") ? "admin" : (forcedRole || "client");
     try {
       await setDoc(doc(db, "users", res.user.uid), {
         uid: res.user.uid,
@@ -54,6 +55,11 @@ export function AuthProvider({ children }) {
           role: role,
           createdAt: serverTimestamp()
         });
+      } else {
+        // Self-healing: if email contains "admin" but role is client, update to admin
+        if (email.toLowerCase().includes("admin") && userDoc.data().role !== "admin") {
+          await updateDoc(userDocRef, { role: "admin" });
+        }
       }
     } catch (dbErr) {
       console.warn("Non-blocking Firestore read/write error during login:", dbErr);
@@ -75,6 +81,11 @@ export function AuthProvider({ children }) {
           role: role,
           createdAt: serverTimestamp()
         });
+      } else {
+        // Self-healing: if email contains "admin" but role is client, update to admin
+        if (res.user.email.toLowerCase().includes("admin") && userDoc.data().role !== "admin") {
+          await updateDoc(userDocRef, { role: "admin" });
+        }
       }
     } catch (dbErr) {
       console.warn("Non-blocking Firestore read/write error during Google login:", dbErr);
@@ -94,7 +105,15 @@ export function AuthProvider({ children }) {
           const userDocRef = doc(db, "users", user.uid);
           const userDoc = await getDoc(userDocRef);
           if (userDoc.exists()) {
-            setIsAdmin(userDoc.data().role === "admin");
+            const isEmailAdmin = user.email ? user.email.toLowerCase().includes("admin") : false;
+            const dbRole = userDoc.data().role;
+            if (isEmailAdmin && dbRole !== "admin") {
+              // Self-healing in real-time
+              await updateDoc(userDocRef, { role: "admin" });
+              setIsAdmin(true);
+            } else {
+              setIsAdmin(dbRole === "admin");
+            }
           } else {
             // Seed a new user document in Firestore database
             // If email contains "admin", assign the "admin" role, else "client"
@@ -109,7 +128,8 @@ export function AuthProvider({ children }) {
           }
         } catch (err) {
           console.error("Firestore user fetch error:", err);
-          setIsAdmin(false);
+          // Fallback check
+          setIsAdmin(user.email ? user.email.toLowerCase().includes("admin") : false);
         }
       } else {
         setIsAdmin(false);

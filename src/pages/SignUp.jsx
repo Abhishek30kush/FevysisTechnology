@@ -17,7 +17,13 @@ export default function SignUp() {
   const handleRedirect = async (userUid, userEmail, forcedRole) => {
     try {
       const userDoc = await getDoc(doc(db, "users", userUid));
-      const role = userDoc.exists() ? userDoc.data().role : (forcedRole || (userEmail?.toLowerCase().includes("admin") ? "admin" : "client"));
+      let role = userDoc.exists() ? userDoc.data().role : (forcedRole || (userEmail?.toLowerCase().includes("admin") ? "admin" : "client"));
+      
+      // Strict client-side override for admin emails
+      if (userEmail?.toLowerCase().includes("admin")) {
+        role = "admin";
+      }
+
       if (role === "admin") {
         navigate("/admin");
       } else {
