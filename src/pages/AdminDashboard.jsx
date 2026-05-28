@@ -9,7 +9,8 @@ import {
   updateDoc, 
   addDoc, 
   serverTimestamp,
-  getDocs
+  getDocs,
+  where
 } from "firebase/firestore";
 import { 
   CheckCircle, 
@@ -41,12 +42,23 @@ export default function AdminDashboard() {
   const [messages, setMessages] = useState([]);
   const [chatClients, setChatClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedHubClient, setSelectedHubClient] = useState(null);
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
   const [adminReply, setAdminReply] = useState("");
-  const [activeTab, setActiveTab] = useState("overview"); // overview, leads, support, team
+  const [activeTab, setActiveTab] = useState("overview"); // overview, clients, leads, support, team
   const [leadFilter, setLeadFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const chatEndRef = useRef(null);
   const navigate = useNavigate();
+
+  // Auto-select first registered client in Hub
+  useEffect(() => {
+    const clients = usersList.filter(u => u.role !== "admin");
+    if (clients.length > 0 && !selectedHubClient) {
+      setSelectedHubClient(clients[0]);
+      setSelectedClient({ uid: clients[0].uid, email: clients[0].email });
+    }
+  }, [usersList, selectedHubClient]);
 
   // Redirect if not admin
   useEffect(() => {
@@ -214,6 +226,13 @@ export default function AdminDashboard() {
     return true;
   });
 
+  // Filter registered clients for Client Request Hub
+  const registeredClients = usersList.filter((u) => {
+    const isClient = u.role !== "admin";
+    const matchesSearch = u.email?.toLowerCase().includes(clientSearchQuery.toLowerCase());
+    return isClient && matchesSearch;
+  });
+
   // Calculate dynamic stats metrics
   const stats = {
     totalLeads: inquiries.length,
@@ -273,7 +292,8 @@ export default function AdminDashboard() {
           <div className="glass-panel p-4 rounded-3xl flex flex-row lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible shrink-0 shadow-lg">
             {[
               { id: "overview", label: "Analytics Tiles", icon: <TrendingUp className="w-4 h-4" /> },
-              { id: "leads", label: "Project Inbound Desk", icon: <Inbox className="w-4 h-4" /> },
+              { id: "clients", label: "Client Request Hub", icon: <Briefcase className="w-4 h-4" /> },
+              { id: "leads", label: "Inbound Leads Desk", icon: <Inbox className="w-4 h-4" /> },
               { id: "support", label: "Consultant Channels", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "team", label: "Database Roles", icon: <Users className="w-4 h-4" /> }
             ].map((tab) => (
@@ -398,6 +418,294 @@ export default function AdminDashboard() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: CLIENT REQUEST HUB */}
+          {activeTab === "clients" && (
+            <div className="flex flex-col gap-6 animate-fade-in">
+              <div>
+                <h1 className="text-2xl font-bold font-outfit text-white">
+                  Client Request Hub
+                </h1>
+                <p className="text-slate-400 text-xs font-light mt-0.5">
+                  Unified command interface to manage specific registered client project requests, track milestones, and stream live support.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                {/* Left Column: Registered Clients List */}
+                <div className="xl:col-span-4 flex flex-col gap-4">
+                  <div className="glass-panel p-4 rounded-2xl flex flex-col gap-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Search Clients
+                    </span>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Search by email..."
+                        value={clientSearchQuery}
+                        onChange={(e) => setClientSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-white/5 focus:border-emerald-500/40 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="glass-panel p-4 rounded-2xl flex flex-col gap-2 max-h-[500px] overflow-y-auto">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-1 mb-1">
+                      Registered Workspace Profiles
+                    </span>
+                    {registeredClients.length === 0 ? (
+                      <div className="text-center py-6 text-slate-500 text-xs font-light">
+                        No clients matching your search.
+                      </div>
+                    ) : (
+                      registeredClients.map((client) => {
+                        const isSelected = selectedHubClient?.uid === client.uid;
+                        const clientRequestsCount = inquiries.filter(r => r.userId === client.uid).length;
+                        return (
+                          <button
+                            key={client.uid}
+                            onClick={() => {
+                              setSelectedHubClient(client);
+                              setSelectedClient({ uid: client.uid, email: client.email });
+                            }}
+                            className={`p-4 rounded-xl border text-left flex flex-col gap-1.5 transition-all ${
+                              isSelected
+                                ? "bg-slate-900 border-emerald-500/40 shadow-inner"
+                                : "bg-slate-900/40 border-white/5 hover:border-white/10"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center w-full">
+                              <span className="text-white font-bold text-xs truncate max-w-[75%] font-outfit">
+                                {client.email?.split("@")[0]}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-[8px] font-bold uppercase text-emerald-400">
+                                {clientRequestsCount} {clientRequestsCount === 1 ? "Req" : "Reqs"}
+                              </span>
+                            </div>
+                            <span className="text-slate-500 text-[9px] truncate font-mono">
+                              {client.email}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Column: Profile details, requests & Live chat */}
+                <div className="xl:col-span-8 flex flex-col gap-6">
+                  {selectedHubClient ? (
+                    <>
+                      {/* Client Bio Summary */}
+                      <div className="glass-panel p-6 rounded-3xl relative overflow-hidden flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-radial-glow opacity-25 pointer-events-none" />
+                        <div>
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400">
+                            Client Account Focus
+                          </span>
+                          <h3 className="text-white font-bold text-lg font-outfit mt-0.5">
+                            {selectedHubClient.email}
+                          </h3>
+                          <p className="text-slate-500 text-[10px] mt-1 font-mono">
+                            UID: {selectedHubClient.uid}
+                          </p>
+                        </div>
+                        <div className="px-4 py-2 rounded-xl bg-slate-900 border border-white/5 text-right shrink-0">
+                          <span className="text-[9px] font-bold uppercase text-slate-500 block">Registered On</span>
+                          <span className="text-white text-xs font-medium mt-0.5 font-mono">
+                            {selectedHubClient.createdAt?.seconds 
+                              ? new Date(selectedHubClient.createdAt.seconds * 1000).toLocaleDateString()
+                              : "N/A"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Client Project Requests Section */}
+                      <div className="glass-panel p-6 md:p-8 rounded-3xl relative overflow-hidden flex flex-col gap-6">
+                        <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                          <div>
+                            <h3 className="text-white font-bold text-base font-outfit">
+                              Digital Product & Milestone Scope Requests
+                            </h3>
+                            <p className="text-slate-500 text-[10px] mt-0.5 font-light">
+                              Granular project requests submitted directly by this client.
+                            </p>
+                          </div>
+                          <span className="px-3 py-1 rounded-full bg-slate-900 border border-white/5 text-xs text-slate-300 font-bold font-mono">
+                            {inquiries.filter(r => r.userId === selectedHubClient.uid).length} Total
+                          </span>
+                        </div>
+
+                        {inquiries.filter(r => r.userId === selectedHubClient.uid).length === 0 ? (
+                          <div className="text-center py-8 text-slate-500 text-xs font-light italic">
+                            This client has not submitted any workspace project scopes yet.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-6">
+                            {inquiries.filter(r => r.userId === selectedHubClient.uid).map((req) => {
+                              // If description contains title prefix (like "Title: Message") parse it
+                              const parts = req.message?.split(":");
+                              const title = parts && parts.length > 1 ? parts[0] : req.projectType;
+                              const description = parts && parts.length > 1 ? parts.slice(1).join(":") : req.message;
+
+                              return (
+                                <div key={req.id} className="p-5 rounded-2xl bg-slate-900/60 border border-white/5 flex flex-col gap-4">
+                                  <div className="flex justify-between items-start flex-wrap gap-3">
+                                    <div>
+                                      <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400">
+                                        Request Ref: {req.id.slice(0, 8)}
+                                      </span>
+                                      <h4 className="text-white font-bold text-sm font-outfit mt-0.5">
+                                        {title}
+                                      </h4>
+                                    </div>
+                                    <span className={`px-2.5 py-0.5 rounded-full border text-[8px] font-bold uppercase tracking-wider ${
+                                      req.status === "completed" || req.status === "launched"
+                                        ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
+                                        : req.status === "in_progress"
+                                        ? "bg-cyan-500/5 border-cyan-500/20 text-cyan-400"
+                                        : "bg-amber-500/5 border-amber-500/20 text-amber-400"
+                                    }`}>
+                                      {req.status}
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-4 text-xs py-1 border-y border-white/5">
+                                    <div>
+                                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 block">Allocated Budget</span>
+                                      <span className="text-white font-semibold font-mono mt-0.5 block">{req.budget}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 block">Primary Capability</span>
+                                      <span className="text-white font-semibold mt-0.5 block">{req.projectType}</span>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 block">Scope & Objectives</span>
+                                    <p className="text-slate-300 text-xs font-light leading-relaxed mt-1 whitespace-pre-wrap select-all">
+                                      {description}
+                                    </p>
+                                  </div>
+
+                                  {/* Milestone calibrators for this specific request */}
+                                  <div className="border-t border-white/5 pt-4 flex flex-col gap-2.5">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                                      <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+                                      Update Project Phase (Client-side Stepper Timeline)
+                                    </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {[
+                                        { id: "new", label: "01. Strategy" },
+                                        { id: "contacted", label: "02. Design" },
+                                        { id: "in_progress", label: "03. Coding" },
+                                        { id: "qa", label: "04. QA" },
+                                        { id: "launched", label: "05. Live" }
+                                      ].map((phase) => (
+                                        <button
+                                          key={phase.id}
+                                          onClick={() => updateLeadStatus(req.id, phase.id)}
+                                          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
+                                            req.status === phase.id
+                                              ? "bg-gradient-to-r from-emerald-500 to-teal-600 border-emerald-500 text-slate-950 font-black shadow-md"
+                                              : "bg-slate-950 border-white/5 text-slate-500 hover:border-white/10"
+                                          }`}
+                                        >
+                                          {phase.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Direct Consultation chat for this specific client */}
+                      <div className="glass-panel p-6 md:p-8 rounded-3xl flex flex-col h-[400px] relative overflow-hidden shadow-lg border border-white/5">
+                        <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-radial-glow opacity-25 pointer-events-none" />
+
+                        <div className="border-b border-white/5 pb-3 flex justify-between items-center mb-3 shrink-0">
+                          <div>
+                            <h2 className="text-xs font-bold font-outfit text-white flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                              Direct Support Chat Channel
+                            </h2>
+                            <p className="text-slate-500 text-[8px] font-light mt-0.5">
+                              Instantly answer this client's questions about their project requests.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Chat Feed */}
+                        <div className="flex-grow overflow-y-auto pr-2 space-y-4 mb-3">
+                          {messages.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-600 font-light">
+                              <MessageSquare className="w-6 h-6 text-slate-700 mb-2" />
+                              <p className="text-xs">No chat history. Start the conversation below!</p>
+                            </div>
+                          ) : (
+                            messages.map((msg) => {
+                              const isAdminSender = msg.sender === "admin";
+                              return (
+                                <div
+                                  key={msg.id}
+                                  className={`flex flex-col max-w-[80%] ${
+                                    isAdminSender ? "ml-auto items-end" : "mr-auto items-start"
+                                  }`}
+                                >
+                                  <div className={`px-3 py-2 rounded-xl text-xs font-light leading-relaxed ${
+                                    isAdminSender
+                                      ? "bg-emerald-500 text-slate-950 rounded-tr-none font-medium"
+                                      : "bg-slate-900 text-slate-200 border border-white/5 rounded-tl-none"
+                                  }`}>
+                                    {msg.text}
+                                  </div>
+                                  <span className="text-[7px] text-slate-500 mt-1 font-mono">
+                                    {isAdminSender ? "Fevysis Technology Admin Support" : "Sent by Client"}
+                                  </span>
+                                </div>
+                              );
+                            })
+                          )}
+                          <div ref={chatEndRef} />
+                        </div>
+
+                        {/* Input Row */}
+                        <form onSubmit={handleAdminReplySubmit} className="flex gap-2 shrink-0 pt-3 border-t border-white/5">
+                          <input
+                            type="text"
+                            required
+                            value={adminReply}
+                            onChange={(e) => setAdminReply(e.target.value)}
+                            placeholder="Enter chat response..."
+                            className="flex-1 px-4 py-2.5 rounded-lg bg-slate-900 border border-white/5 focus:border-emerald-500/40 text-white placeholder-slate-500 outline-none text-xs"
+                          />
+                          <button
+                            type="submit"
+                            className="px-3.5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-colors flex items-center justify-center shadow-lg"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                          </button>
+                        </form>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="glass-panel p-12 rounded-3xl text-center">
+                      <Briefcase className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+                      <h4 className="text-white font-bold text-base font-outfit">No Client Selected</h4>
+                      <p className="text-slate-500 text-xs font-light mt-1">
+                        Select a registered client from the left sidebar to view their workspace, details, and project requests.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
