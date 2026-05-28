@@ -10,8 +10,6 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [accountRole, setAccountRole] = useState("client"); // client or admin
-  const [adminKey, setAdminKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -51,15 +49,10 @@ export default function SignUp() {
       return setError("Password must be at least 6 characters.");
     }
 
-    if (accountRole === "admin" && adminKey.trim() !== "fevysis-admin") {
-      setLoading(false);
-      return setError("Invalid Administrator Command Key! Please enter 'fevysis-admin'.");
-    }
-
     try {
-      const res = await signUp(email, password, accountRole);
+      const res = await signUp(email, password, "client");
       if (res.user) {
-        await handleRedirect(res.user.uid, email, accountRole);
+        await handleRedirect(res.user.uid, email, "client");
       }
     } catch (err) {
       console.error(err);
@@ -126,46 +119,6 @@ export default function SignUp() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {/* Account Type Selector */}
-            <div className="flex flex-col gap-2">
-              <label htmlFor="accountRole" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Workspace Type
-              </label>
-              <select
-                id="accountRole"
-                value={accountRole}
-                onChange={(e) => {
-                  setAccountRole(e.target.value);
-                  setError("");
-                }}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 focus:border-cyan-500/40 text-white outline-none text-sm cursor-pointer"
-              >
-                <option value="client">Client Workspace (Default)</option>
-                <option value="admin">Fevysis Command Admin</option>
-              </select>
-            </div>
-
-            {/* Conditional Security Command Key input */}
-            {accountRole === "admin" && (
-              <div className="flex flex-col gap-2 animate-fade-in">
-                <label htmlFor="adminKey" className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                  Security Command Key
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-3.5 w-4 h-4 text-emerald-500" />
-                  <input
-                    type="password"
-                    id="adminKey"
-                    required
-                    value={adminKey}
-                    onChange={(e) => setAdminKey(e.target.value)}
-                    placeholder="Enter fevysis-admin"
-                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900 border border-emerald-500/20 focus:border-emerald-500/40 text-white placeholder-slate-600 outline-none text-sm transition-all"
-                  />
-                </div>
-              </div>
-            )}
-
             {/* Email */}
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
