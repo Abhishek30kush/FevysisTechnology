@@ -13,29 +13,13 @@ export default function SignIn() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleRedirect = async (userUid, userEmail) => {
-    try {
-      const userDoc = await getDoc(doc(db, "users", userUid));
-      let role = userDoc.exists() ? userDoc.data().role : (userEmail?.toLowerCase().includes("admin") ? "admin" : "client");
-      
-      // Strict client-side override for admin emails
-      if (userEmail?.toLowerCase().includes("admin")) {
-        role = "admin";
-      }
-
-      if (role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
-      }
-    } catch (err) {
-      console.error("Error reading user role:", err);
-      // Bulletproof fallback based on email role convention
-      if (userEmail?.toLowerCase().includes("admin")) {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
-      }
+  const handleRedirect = (userUid, userEmail) => {
+    // Direct, instantaneous redirection based on email keyword to avoid waiting for Firestore getDoc
+    const isEmailAdmin = userEmail?.toLowerCase().includes("admin");
+    if (isEmailAdmin) {
+      navigate("/admin");
+    } else {
+      navigate("/dashboard");
     }
   };
 
@@ -47,7 +31,7 @@ export default function SignIn() {
     try {
       const res = await login(email, password);
       if (res.user) {
-        await handleRedirect(res.user.uid, email);
+        handleRedirect(res.user.uid, email);
       }
     } catch (err) {
       console.error(err);
@@ -64,7 +48,7 @@ export default function SignIn() {
     try {
       const res = await loginWithGoogle();
       if (res.user) {
-        await handleRedirect(res.user.uid, res.user.email);
+        handleRedirect(res.user.uid, res.user.email);
       }
     } catch (err) {
       console.error(err);
