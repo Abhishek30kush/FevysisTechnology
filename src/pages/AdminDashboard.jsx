@@ -45,6 +45,7 @@ export default function AdminDashboard() {
   const [selectedHubClient, setSelectedHubClient] = useState(null);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
   const [adminReply, setAdminReply] = useState("");
+  const [chatError, setChatError] = useState("");
   const [activeTab, setActiveTab] = useState("overview"); // overview, clients, leads, support, team
   const [leadFilter, setLeadFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -202,6 +203,7 @@ export default function AdminDashboard() {
   const handleAdminReplySubmit = async (e) => {
     e.preventDefault();
     if (!adminReply.trim() || !selectedClient) return;
+    setChatError("");
 
     try {
       await addDoc(collection(db, "messages"), {
@@ -214,6 +216,7 @@ export default function AdminDashboard() {
       setAdminReply("");
     } catch (err) {
       console.error("Error saving admin reply:", err);
+      setChatError(`Transmission failed: ${err.message || err}`);
     }
   };
 
@@ -678,6 +681,12 @@ export default function AdminDashboard() {
                           <div ref={chatEndRef} />
                         </div>
 
+                        {chatError && (
+                          <div className="px-4 py-2 text-[10px] text-red-400 bg-red-500/5 border border-red-500/10 rounded-xl mb-3 shrink-0 font-sans">
+                            {chatError}
+                          </div>
+                        )}
+
                         {/* Input Row */}
                         <form onSubmit={handleAdminReplySubmit} className="flex gap-2 shrink-0 pt-3 border-t border-white/5">
                           <input
@@ -967,6 +976,12 @@ export default function AdminDashboard() {
                           })}
                           <div ref={chatEndRef} />
                         </div>
+
+                        {chatError && (
+                          <div className="px-4 py-2 text-[10px] text-red-400 bg-red-500/5 border border-red-500/10 rounded-xl mb-3 shrink-0 font-sans">
+                            {chatError}
+                          </div>
+                        )}
 
                         {/* Input Row */}
                         <form onSubmit={handleAdminReplySubmit} className="flex gap-3 shrink-0 pt-3 border-t border-white/5">

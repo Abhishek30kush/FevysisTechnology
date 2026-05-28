@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [activeProject, setActiveProject] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const [chatError, setChatError] = useState("");
   const [activeTab, setActiveTab] = useState("overview"); // overview, requests, support
   const [loading, setLoading] = useState(true);
   const chatEndRef = useRef(null);
@@ -117,6 +118,7 @@ export default function Dashboard() {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !currentUser) return;
+    setChatError("");
 
     try {
       await addDoc(collection(db, "messages"), {
@@ -129,6 +131,7 @@ export default function Dashboard() {
       setNewMessage("");
     } catch (err) {
       console.error("Error sending message:", err);
+      setChatError(`Transmission failed: ${err.message || err}`);
     }
   };
 
@@ -578,6 +581,12 @@ export default function Dashboard() {
                 )}
                 <div ref={chatEndRef} />
               </div>
+
+              {chatError && (
+                <div className="px-4 py-2 text-[10px] text-red-400 bg-red-500/5 border border-red-500/10 rounded-xl mb-3 shrink-0">
+                  {chatError}
+                </div>
+              )}
 
               {/* Input row */}
               <form onSubmit={handleSendMessage} className="flex gap-3 shrink-0 pt-3 border-t border-white/5">
