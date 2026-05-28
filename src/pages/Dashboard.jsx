@@ -413,91 +413,117 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              {requestSuccess && (
-                <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-xs font-medium mb-6">
-                  {requestSuccess}
+              {requestSuccess ? (
+                <div className="text-center py-10 flex flex-col items-center justify-center animate-fade-in">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6">
+                    <CheckCircle className="w-8 h-8 text-emerald-400 animate-bounce" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white font-outfit mb-3">
+                    Project Scope Transmitted!
+                  </h3>
+                  <p className="text-slate-400 text-xs leading-relaxed max-w-md font-light mb-8">
+                    Your request has been successfully written to the secure database. Our squad has been alerted, and you can now track its execution.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <button
+                      onClick={() => {
+                        setRequestSuccess("");
+                        setActiveTab("overview");
+                      }}
+                      className="px-6 py-3 rounded-full text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-md shadow-cyan-500/10 hover:shadow-cyan-500/20 transition-all duration-300 flex items-center gap-2"
+                    >
+                      View in Tracking Console
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setRequestSuccess("")}
+                      className="px-6 py-3 rounded-full text-xs font-semibold uppercase tracking-wider border border-white/10 hover:border-white/20 bg-white/5 text-slate-300 hover:text-white transition-all"
+                    >
+                      Submit Another Scope
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <form onSubmit={handleNewProjectSubmit} className="flex flex-col gap-5">
+                  {/* Title */}
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="reqTitle" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Project Reference / Title
+                    </label>
+                    <input
+                      type="text"
+                      id="reqTitle"
+                      required
+                      value={requestData.title}
+                      onChange={(e) => setRequestData({ ...requestData, title: e.target.value })}
+                      placeholder="e.g. Lumina E-Commerce Dashboard Integration"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 focus:border-cyan-500/40 text-white placeholder-slate-500 outline-none text-sm transition-all"
+                    />
+                  </div>
+
+                  {/* Grid Type & Budget */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="reqType" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Primary Stack Area
+                      </label>
+                      <select
+                        id="reqType"
+                        value={requestData.projectType}
+                        onChange={(e) => setRequestData({ ...requestData, projectType: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 focus:border-cyan-500/40 text-white outline-none text-sm transition-all cursor-pointer"
+                      >
+                        <option value="Web Engineering">Web Engineering</option>
+                        <option value="Mobile Apps">Mobile Apps</option>
+                        <option value="SEO & Optimization">SEO & Optimization</option>
+                        <option value="Enterprise Cloud & DevOps">Enterprise Cloud & DevOps</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="reqBudget" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Allocated Budget Range
+                      </label>
+                      <select
+                        id="reqBudget"
+                        value={requestData.budget}
+                        onChange={(e) => setRequestData({ ...requestData, budget: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 focus:border-cyan-500/40 text-white outline-none text-sm transition-all cursor-pointer"
+                      >
+                        <option value="Under $5,000">Under $5,000</option>
+                        <option value="$5,000 - $20,000">$5,000 - $20,000</option>
+                        <option value="$20,000 - $50,000">$20,000 - $50,000</option>
+                        <option value="$50,000+">$50,000+</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Message */}
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="reqMessage" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Technical Goals & Deliverables
+                    </label>
+                    <textarea
+                      id="reqMessage"
+                      required
+                      rows="5"
+                      value={requestData.message}
+                      onChange={(e) => setRequestData({ ...requestData, message: e.target.value })}
+                      placeholder="Specify backend integrations, desired layout aesthetic, or mobile targets..."
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 focus:border-cyan-500/40 text-white placeholder-slate-500 outline-none text-sm transition-all resize-none"
+                    />
+                  </div>
+
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={requestSubmitting}
+                    className="py-3.5 rounded-xl text-sm font-semibold uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
+                  >
+                    {requestSubmitting ? "Transmitting Scope Spec..." : "Transmit Scope Specification"}
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
               )}
-
-              <form onSubmit={handleNewProjectSubmit} className="flex flex-col gap-5">
-                {/* Title */}
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="reqTitle" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Project Reference / Title
-                  </label>
-                  <input
-                    type="text"
-                    id="reqTitle"
-                    required
-                    value={requestData.title}
-                    onChange={(e) => setRequestData({ ...requestData, title: e.target.value })}
-                    placeholder="e.g. Lumina E-Commerce Dashboard Integration"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 focus:border-cyan-500/40 text-white placeholder-slate-500 outline-none text-sm transition-all"
-                  />
-                </div>
-
-                {/* Grid Type & Budget */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="reqType" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Primary Stack Area
-                    </label>
-                    <select
-                      id="reqType"
-                      value={requestData.projectType}
-                      onChange={(e) => setRequestData({ ...requestData, projectType: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 focus:border-cyan-500/40 text-white outline-none text-sm transition-all cursor-pointer"
-                    >
-                      <option value="Web Engineering">Web Engineering</option>
-                      <option value="Mobile Apps">Mobile Apps</option>
-                      <option value="SEO & Optimization">SEO & Optimization</option>
-                      <option value="Enterprise Cloud & DevOps">Enterprise Cloud & DevOps</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="reqBudget" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Allocated Budget Range
-                    </label>
-                    <select
-                      id="reqBudget"
-                      value={requestData.budget}
-                      onChange={(e) => setRequestData({ ...requestData, budget: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 focus:border-cyan-500/40 text-white outline-none text-sm transition-all cursor-pointer"
-                    >
-                      <option value="Under $5,000">Under $5,000</option>
-                      <option value="$5,000 - $20,000">$5,000 - $20,000</option>
-                      <option value="$20,000 - $50,000">$20,000 - $50,000</option>
-                      <option value="$50,000+">$50,000+</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Message */}
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="reqMessage" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Technical Goals & Deliverables
-                  </label>
-                  <textarea
-                    id="reqMessage"
-                    required
-                    rows="5"
-                    value={requestData.message}
-                    onChange={(e) => setRequestData({ ...requestData, message: e.target.value })}
-                    placeholder="Specify backend integrations, desired layout aesthetic, or mobile targets..."
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/5 focus:border-cyan-500/40 text-white placeholder-slate-500 outline-none text-sm transition-all resize-none"
-                  />
-                </div>
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={requestSubmitting}
-                  className="py-3.5 rounded-xl text-sm font-semibold uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
-                >
-                  {requestSubmitting ? "Transmitting Scope Spec..." : "Transmit Scope Specification"}
-                  <Send className="w-4 h-4" />
-                </button>
-              </form>
             </div>
           )}
 
