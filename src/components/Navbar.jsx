@@ -5,6 +5,7 @@ import { Menu, X, LogOut, User, LayoutDashboard, Settings } from "lucide-react";
 
 export default function Navbar() {
   const { currentUser, isAdmin, logout } = useAuth();
+  const hasAdminAccess = isAdmin || currentUser?.email?.toLowerCase().includes("admin");
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
@@ -107,7 +108,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center space-x-4">
           {currentUser ? (
             <>
-              {isAdmin && (
+              {hasAdminAccess && (
                 <Link
                   to="/admin"
                   className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 transition-all"
@@ -195,7 +196,7 @@ export default function Navbar() {
           <div className="flex flex-col space-y-4 pt-4">
             {currentUser ? (
               <>
-                {isAdmin && (
+                {hasAdminAccess && (
                   <Link
                     to="/admin"
                     onClick={() => setIsOpen(false)}

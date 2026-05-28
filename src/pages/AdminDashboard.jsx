@@ -36,6 +36,9 @@ import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
   const { currentUser, isAdmin, logout } = useAuth();
+  const isEmailAdmin = currentUser?.email?.toLowerCase().includes("admin");
+  const hasAdminAccess = isAdmin || isEmailAdmin;
+
   const [inquiries, setInquiries] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -63,17 +66,16 @@ export default function AdminDashboard() {
 
   // Redirect if not admin (with email fallback to prevent state sync race conditions)
   useEffect(() => {
-    const isEmailAdmin = currentUser?.email?.toLowerCase().includes("admin");
     if (!currentUser) {
       navigate("/signin");
-    } else if (!isAdmin && !isEmailAdmin) {
+    } else if (!hasAdminAccess) {
       navigate("/dashboard");
     }
-  }, [currentUser, isAdmin, navigate]);
+  }, [currentUser, hasAdminAccess, navigate]);
 
   // Fetch inquiries (leads) in real-time
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!hasAdminAccess) return;
 
     const q = query(collection(db, "inquiries"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -94,11 +96,11 @@ export default function AdminDashboard() {
     });
 
     return () => unsubscribe();
-  }, [isAdmin]);
+  }, [hasAdminAccess]);
 
   // Fetch registered users directory from Firestore
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!hasAdminAccess) return;
 
     const q = query(collection(db, "users"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
     });
 
     return () => unsubscribe();
-  }, [isAdmin]);
+  }, [hasAdminAccess]);
 
   // Auto-select lead when list loads or changes
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function AdminDashboard() {
 
   // Fetch all chat support channels (unique clients who sent messages)
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!hasAdminAccess) return;
 
     const q = query(collection(db, "messages"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -153,11 +155,11 @@ export default function AdminDashboard() {
     });
 
     return () => unsubscribe();
-  }, [isAdmin]);
+  }, [hasAdminAccess]);
 
   // Fetch chat feed for selected client in real-time
   useEffect(() => {
-    if (!isAdmin || !selectedClient) return;
+    if (!hasAdminAccess || !selectedClient) return;
 
     const q = query(
       collection(db, "messages"),
@@ -186,7 +188,7 @@ export default function AdminDashboard() {
     });
 
     return () => unsubscribe();
-  }, [isAdmin, selectedClient, activeTab]);
+  }, [hasAdminAccess, selectedClient, activeTab]);
 
   const updateLeadStatus = async (leadId, newStatus) => {
     try {
