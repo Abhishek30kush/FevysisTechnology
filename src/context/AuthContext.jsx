@@ -29,6 +29,7 @@ export function AuthProvider({ children }) {
     const res = await createUserWithEmailAndPassword(auth, email, password);
     // If the email has "admin", it MUST be "admin" role (override forcedRole)
     const role = email.toLowerCase().includes("admin") ? "admin" : (forcedRole || "client");
+    setIsAdmin(role === "admin");
     try {
       await setDoc(doc(db, "users", res.user.uid), {
         uid: res.user.uid,
@@ -44,11 +45,13 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     const res = await signInWithEmailAndPassword(auth, email, password);
+    const isEmailAdmin = email.toLowerCase().includes("admin");
+    setIsAdmin(isEmailAdmin);
     try {
       const userDocRef = doc(db, "users", res.user.uid);
       const userDoc = await getDoc(userDocRef);
       if (!userDoc.exists()) {
-        const role = email.toLowerCase().includes("admin") ? "admin" : "client";
+        const role = isEmailAdmin ? "admin" : "client";
         await setDoc(userDocRef, {
           uid: res.user.uid,
           email: email,
@@ -57,7 +60,7 @@ export function AuthProvider({ children }) {
         });
       } else {
         // Self-healing: if email contains "admin" but role is client, update to admin
-        if (email.toLowerCase().includes("admin") && userDoc.data().role !== "admin") {
+        if (isEmailAdmin && userDoc.data().role !== "admin") {
           await updateDoc(userDocRef, { role: "admin" });
         }
       }
@@ -70,11 +73,13 @@ export function AuthProvider({ children }) {
   async function loginWithGoogle() {
     const provider = new GoogleAuthProvider();
     const res = await signInWithPopup(auth, provider);
+    const isEmailAdmin = res.user.email ? res.user.email.toLowerCase().includes("admin") : false;
+    setIsAdmin(isEmailAdmin);
     try {
       const userDocRef = doc(db, "users", res.user.uid);
       const userDoc = await getDoc(userDocRef);
       if (!userDoc.exists()) {
-        const role = res.user.email.toLowerCase().includes("admin") ? "admin" : "client";
+        const role = isEmailAdmin ? "admin" : "client";
         await setDoc(userDocRef, {
           uid: res.user.uid,
           email: res.user.email,
@@ -83,7 +88,7 @@ export function AuthProvider({ children }) {
         });
       } else {
         // Self-healing: if email contains "admin" but role is client, update to admin
-        if (res.user.email.toLowerCase().includes("admin") && userDoc.data().role !== "admin") {
+        if (isEmailAdmin && userDoc.data().role !== "admin") {
           await updateDoc(userDocRef, { role: "admin" });
         }
       }

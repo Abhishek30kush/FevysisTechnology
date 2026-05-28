@@ -61,11 +61,12 @@ export default function AdminDashboard() {
     }
   }, [usersList, selectedHubClient]);
 
-  // Redirect if not admin
+  // Redirect if not admin (with email fallback to prevent state sync race conditions)
   useEffect(() => {
+    const isEmailAdmin = currentUser?.email?.toLowerCase().includes("admin");
     if (!currentUser) {
       navigate("/signin");
-    } else if (!isAdmin) {
+    } else if (!isAdmin && !isEmailAdmin) {
       navigate("/dashboard");
     }
   }, [currentUser, isAdmin, navigate]);
