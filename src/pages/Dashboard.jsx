@@ -49,6 +49,7 @@ export default function Dashboard() {
   });
   const [requestSubmitting, setRequestSubmitting] = useState(false);
   const [requestSuccess, setRequestSuccess] = useState("");
+  const [requestError, setRequestError] = useState("");
 
   // Redirect if not logged in
   useEffect(() => {
@@ -146,6 +147,7 @@ export default function Dashboard() {
     e.preventDefault();
     setRequestSubmitting(true);
     setRequestSuccess("");
+    setRequestError("");
 
     try {
       await addDoc(collection(db, "inquiries"), {
@@ -162,6 +164,8 @@ export default function Dashboard() {
       });
 
       setRequestSuccess("Scope submitted successfully! Our squad has been alerted.");
+      alert("Successfully Sent! Your custom project scope has been transmitted to the engineering squad.");
+      
       setRequestData({
         title: "",
         projectType: "Web Engineering",
@@ -170,6 +174,7 @@ export default function Dashboard() {
       });
     } catch (err) {
       console.error("Error submitting scope:", err);
+      setRequestError("Failed to transmit project scope. Please verify your connection and try again.");
     } finally {
       setRequestSubmitting(false);
     }
@@ -455,6 +460,11 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <form onSubmit={handleNewProjectSubmit} className="flex flex-col gap-5">
+                  {requestError && (
+                    <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 text-xs font-medium">
+                      {requestError}
+                    </div>
+                  )}
                   {/* Title */}
                   <div className="flex flex-col gap-2">
                     <label htmlFor="reqTitle" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
