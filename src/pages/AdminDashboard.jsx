@@ -49,7 +49,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview"); // overview, clients, leads, support, team
   const [leadFilter, setLeadFilter] = useState("all");
   const [loading, setLoading] = useState(true);
-  const chatEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
   const navigate = useNavigate();
 
   // Auto-select first registered client in Hub
@@ -174,7 +174,14 @@ export default function AdminDashboard() {
         return timeA - timeB;
       });
       setMessages(feed);
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 200);
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTo({
+            top: chatContainerRef.current.scrollHeight,
+            behavior: "smooth"
+          });
+        }
+      }, 150);
     });
 
     return () => unsubscribe();
@@ -648,7 +655,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Chat Feed */}
-                        <div className="flex-grow overflow-y-auto pr-2 space-y-4 mb-3">
+                        <div ref={chatContainerRef} className="flex-grow overflow-y-auto pr-2 space-y-4 mb-3">
                           {messages.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-600 font-light">
                               <MessageSquare className="w-6 h-6 text-slate-700 mb-2" />
@@ -678,7 +685,6 @@ export default function AdminDashboard() {
                               );
                             })
                           )}
-                          <div ref={chatEndRef} />
                         </div>
 
                         {chatError && (
@@ -951,7 +957,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Chat Feed */}
-                        <div className="flex-grow overflow-y-auto pr-2 space-y-4 mb-4">
+                        <div ref={chatContainerRef} className="flex-grow overflow-y-auto pr-2 space-y-4 mb-4">
                           {messages.map((msg) => {
                             const isAdminSender = msg.sender === "admin";
                             return (
@@ -974,7 +980,6 @@ export default function AdminDashboard() {
                               </div>
                             );
                           })}
-                          <div ref={chatEndRef} />
                         </div>
 
                         {chatError && (

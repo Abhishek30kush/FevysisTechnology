@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [chatError, setChatError] = useState("");
   const [activeTab, setActiveTab] = useState("overview"); // overview, requests, support
   const [loading, setLoading] = useState(true);
-  const chatEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
   const navigate = useNavigate();
 
   // Project request subform state
@@ -109,7 +109,14 @@ export default function Dashboard() {
         return timeA - timeB;
       });
       setMessages(list);
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 200);
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTo({
+            top: chatContainerRef.current.scrollHeight,
+            behavior: "smooth"
+          });
+        }
+      }, 150);
     });
 
     return () => unsubscribe();
@@ -548,7 +555,7 @@ export default function Dashboard() {
               </div>
 
               {/* Chat Message Box */}
-              <div className="flex-1 overflow-y-auto pr-2 space-y-4 mb-4">
+              <div ref={chatContainerRef} className="flex-1 overflow-y-auto pr-2 space-y-4 mb-4">
                 {messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500 font-light">
                     <MessageSquare className="w-8 h-8 text-slate-600 mb-3" />
@@ -579,7 +586,6 @@ export default function Dashboard() {
                     );
                   })
                 )}
-                <div ref={chatEndRef} />
               </div>
 
               {chatError && (
