@@ -16,10 +16,10 @@ export default function SignUp() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleRedirect = async (userUid) => {
+  const handleRedirect = async (userUid, userEmail, forcedRole) => {
     try {
       const userDoc = await getDoc(doc(db, "users", userUid));
-      const role = userDoc.exists() ? userDoc.data().role : "client";
+      const role = userDoc.exists() ? userDoc.data().role : (forcedRole || (userEmail?.toLowerCase().includes("admin") ? "admin" : "client"));
       if (role === "admin") {
         navigate("/admin");
       } else {
@@ -27,7 +27,12 @@ export default function SignUp() {
       }
     } catch (err) {
       console.error("Error reading user role:", err);
-      navigate("/dashboard");
+      // Fallback based on forcedRole selection or email convention
+      if (forcedRole === "admin" || userEmail?.toLowerCase().includes("admin")) {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     }
   };
 
@@ -54,7 +59,7 @@ export default function SignUp() {
     try {
       const res = await signUp(email, password, accountRole);
       if (res.user) {
-        await handleRedirect(res.user.uid);
+        await handleRedirect(res.user.uid, email, accountRole);
       }
     } catch (err) {
       console.error(err);
@@ -71,7 +76,7 @@ export default function SignUp() {
     try {
       const res = await loginWithGoogle();
       if (res.user) {
-        await handleRedirect(res.user.uid);
+        await handleRedirect(res.user.uid, res.user.email);
       }
     } catch (err) {
       console.error(err);

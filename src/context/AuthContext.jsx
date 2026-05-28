@@ -28,28 +28,35 @@ export function AuthProvider({ children }) {
   async function signUp(email, password, forcedRole) {
     const res = await createUserWithEmailAndPassword(auth, email, password);
     const role = forcedRole || (email.toLowerCase().includes("admin") ? "admin" : "client");
-    await setDoc(doc(db, "users", res.user.uid), {
-      uid: res.user.uid,
-      email: email,
-      role: role,
-      createdAt: serverTimestamp()
-    });
-    return res;
-  }
-
-  async function login(email, password) {
-    const res = await signInWithEmailAndPassword(auth, email, password);
-    // Ensure user document exists in database
-    const userDocRef = doc(db, "users", res.user.uid);
-    const userDoc = await getDoc(userDocRef);
-    if (!userDoc.exists()) {
-      const role = email.toLowerCase().includes("admin") ? "admin" : "client";
-      await setDoc(userDocRef, {
+    try {
+      await setDoc(doc(db, "users", res.user.uid), {
         uid: res.user.uid,
         email: email,
         role: role,
         createdAt: serverTimestamp()
       });
+    } catch (dbErr) {
+      console.warn("Non-blocking Firestore write error during signup:", dbErr);
+    }
+    return res;
+  }
+
+  async function login(email, password) {
+    const res = await signInWithEmailAndPassword(auth, email, password);
+    try {
+      const userDocRef = doc(db, "users", res.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (!userDoc.exists()) {
+        const role = email.toLowerCase().includes("admin") ? "admin" : "client";
+        await setDoc(userDocRef, {
+          uid: res.user.uid,
+          email: email,
+          role: role,
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (dbErr) {
+      console.warn("Non-blocking Firestore read/write error during login:", dbErr);
     }
     return res;
   }
@@ -57,16 +64,20 @@ export function AuthProvider({ children }) {
   async function loginWithGoogle() {
     const provider = new GoogleAuthProvider();
     const res = await signInWithPopup(auth, provider);
-    const userDocRef = doc(db, "users", res.user.uid);
-    const userDoc = await getDoc(userDocRef);
-    if (!userDoc.exists()) {
-      const role = res.user.email.toLowerCase().includes("admin") ? "admin" : "client";
-      await setDoc(userDocRef, {
-        uid: res.user.uid,
-        email: res.user.email,
-        role: role,
-        createdAt: serverTimestamp()
-      });
+    try {
+      const userDocRef = doc(db, "users", res.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (!userDoc.exists()) {
+        const role = res.user.email.toLowerCase().includes("admin") ? "admin" : "client";
+        await setDoc(userDocRef, {
+          uid: res.user.uid,
+          email: res.user.email,
+          role: role,
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (dbErr) {
+      console.warn("Non-blocking Firestore read/write error during Google login:", dbErr);
     }
     return res;
   }
